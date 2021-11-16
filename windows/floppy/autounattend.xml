@@ -23,7 +23,7 @@
           <InstallFrom>
             <MetaData wcm:action="add">
               <Key>/IMAGE/INDEX</Key>
-              <Value>2</Value> <!-- pick the second install option in the list for this ISO (activated) -->
+              <Value>2</Value> <!-- pick the second install option in the list for this ISO -->
             </MetaData>
           </InstallFrom>
         </OSImage>
