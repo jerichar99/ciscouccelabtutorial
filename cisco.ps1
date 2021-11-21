@@ -1,14 +1,14 @@
 ﻿#Connect-VIServer -Server 192.168.1.199 -User root -Password P@ssword123!;
 
-#Invoke-VMScript -VM "AD-A.JLAB1.LOCAL" -GuestUser "administrator" -GuestPassword "P@ssword123!" -ScriptType PowerShell -ScriptText "
-#Add-DnsServerResourceRecordA -Name cucm-pub-a -ZoneName JLAB1.LOCAL -IPv4Address 10.180.1.211 -CreatePtr;
-#";
+Invoke-VMScript -VM "AD-A.JLAB1.LOCAL" -GuestUser "administrator" -GuestPassword "P@ssword123!" -ScriptType PowerShell -ScriptText "
+Add-DnsServerResourceRecordA -Name cucm-pub-a -ZoneName JLAB1.LOCAL -IPv4Address 10.180.1.211 -CreatePtr;
+";
 
-#New-VM -Name "CUCM-PUB-A.JLAB1.LOCAL" -vmhost "192.168.1.199" -NumCpu 1 -MemoryGB 4 -DiskGB 80 -DiskStorageFormat Thin -GuestID centos7_64Guest -NetworkName "Private-SideA";
-#New-CDDrive -VM "CUCM-PUB-A.JLAB1.LOCAL" -IsoPath "[datastore1] /ISOs/cucm_UCSInstall_UCOS_12.5.1.12900-115.sgn_bootable.iso" -StartConnected;
+New-VM -Name "CUCM-PUB-A.JLAB1.LOCAL" -vmhost "192.168.1.199" -NumCpu 1 -MemoryGB 4 -DiskGB 80 -DiskStorageFormat Thin -GuestID centos7_64Guest -NetworkName "Private-SideA";
+New-CDDrive -VM "CUCM-PUB-A.JLAB1.LOCAL" -IsoPath "[datastore1] /ISOs/cucm_UCSInstall_UCOS_12.5.1.12900-115.sgn_bootable.iso" -StartConnected;
 Start-VM "CUCM-PUB-A.JLAB1.LOCAL";
 
-#cd (Split-Path $MyInvocation.MyCommand.Path) # change directory to this script location
+cd (Split-Path $MyInvocation.MyCommand.Path) # change directory to this script location
 . .\_installFunctions.ps1
 
 Send-VMKeystrokesText -vmName "CUCM-PUB-A.JLAB1.LOCAL" -txt "<45><tab><enter><10><tab><enter><5><enter><3>" -description "45 sec boot, skip media, select product, proceed with install";
