@@ -89,7 +89,7 @@ function Set-WindowsVMNetwork ($vmName, $adminPassword, $computerName, $ipAddres
         ";
 
     # wait until complete
-    while ((Get-VM -Name $vmName).ExtensionData.Guest.HostName -ne $computerName) { Write-Host "Waiting for computer name on $vmName..."; Sleep 60; } Sleep 30; # goes from "ADMIN..." to "AD-B"
+    while ((Get-VM -Name $vmName).ExtensionData.Guest.HostName -ne $computerName) { Write-Host "Waiting for computer name on $vmName..."; Sleep 60; } Sleep 60; # goes from "ADMIN..." to "AD-B"
 
 }
 
@@ -104,7 +104,7 @@ function Create-WindowsDomain ($vmName, $adminPassword, $domain, $domainPassword
     Invoke-VMScript -VM $vmName -GuestUser "administrator" -GuestPassword $adminPassword -ScriptType PowerShell -ErrorAction SilentlyContinue -ScriptText $script;
 
     # wait until complete
-    while ((Get-VM -Name $vmName).ExtensionData.Guest.HostName -ne $vmName) { Write-Host "Waiting for domain name on $vmName..."; Sleep 60; } Sleep 30; # goes from "AD-B" to "AD-B.JLAB1.LOCAL"
+    while ((Get-VM -Name $vmName).ExtensionData.Guest.HostName -ne $vmName) { Write-Host "Waiting for domain name on $vmName..."; Sleep 60; } Sleep 180; # goes from "AD-B" to "AD-B.JLAB1.LOCAL", sleep another 180 seconds since it takes some time
 }
 
 function Join-WindowsDomain ($vmName, $adminPassword, $domain, $domainPassword) {
@@ -126,5 +126,30 @@ function Finish-WindowsAD ($vmName, $adminPassword, $reverseZone) {
         Set-Service -Name SMTPSVC -StartupType Automatic;
         shutdown /r -t 10; # restart in 10 seconds
     ";
-    Sleep 30; # wait for reboot
+    Sleep 90; # wait for reboot
+}
+
+
+function Install-CiscoVM ($esxiHost, $vmName, $numCPU, $memoryGB, $diskGB, $networkName, $ciscoISOPath, $adVMName, $adAdminPassword, $computerName, $domain, $ipAddress, $gatewayIP, $dnsIP, $adminPassword, $ntpIP, $securityPassword, $smtpIP, $appUserPassword) {
+    # add host record and reverse pointer
+    #Invoke-VMScript -VM $adVMName -GuestUser "administrator" -GuestPassword $adAdminPassword -ScriptType PowerShell -ScriptText "Add-DnsServerResourceRecordA -Name '$computerName' -ZoneName '$domain' -IPv4Address $ipAddress -CreatePtr;";
+
+    #New-VM -Name $vmName -vmhost $esxiHost -NumCpu $numCPU -MemoryGB $memoryGB -DiskGB $diskGB -DiskStorageFormat Thin -GuestID centos7_64Guest -NetworkName $networkName;
+    #New-CDDrive -VM $vmName -IsoPath $ciscoISOPath -StartConnected;
+    #Start-VM $vmName;
+
+
+    Send-VMKeystrokesText -vmName $vmName -txt "<45><tab><enter><10><tab><enter><5><enter><3>" -description "45 sec boot, skip media, select product, proceed with install";
+return
+    Send-VMKeystrokesText -vmName $vmName -txt "<enter><2><enter><2><enter><2><tab><enter><2><enter><2><enter><2><enter><2>" -description "proceed, no patch, basic install, time zone (default), auto NIC, MTU size, DHCP (no)";
+    Send-VMKeystrokesText -vmName $vmName -txt "$computerName<tab>$ipAddress<tab>255.255.255.0<tab>$gatewayIP<tab><enter><2>" -description "name, IP, mask, gateway";
+    Send-VMKeystrokesText -vmName $vmName -txt "<enter><2>$dnsIP<tab><tab>$domain<tab><enter><2>" -description "dns (yes), dns ip, domain";
+    Send-VMKeystrokesText -vmName $vmName -txt "administrator<tab>$adminPassword<tab>$adminPassword<tab><enter><2>" -description "admin login";
+    Send-VMKeystrokesText -vmName $vmName -txt "n<tab>n<tab>n<tab>n<tab><tab><enter><2>" -description "cert";
+    Send-VMKeystrokesText -vmName $vmName -txt "<enter><2>$ntpIP<tab><tab><tab><tab><tab><enter><2>" -description "first node, ntp";
+    Send-VMKeystrokesText -vmName $vmName -txt "$securityPassword<tab>$securityPassword<tab><enter><2>" -description "security password";
+    Send-VMKeystrokesText -vmName $vmName -txt "<enter><2>$smtpIP<tab><enter><2>" -description "smtp";
+    Send-VMKeystrokesText -vmName $vmName -txt "<tab><tab><tab> <tab><enter><2>" -description "smart call home";
+    Send-VMKeystrokesText -vmName $vmName -txt "administrator<tab>$appUserPassword<tab>$appUserPassword<tab><enter><2>" -description "app user login";
+    Send-VMKeystrokesText -vmName $vmName -txt "<enter><2>" -description "install";
 }
