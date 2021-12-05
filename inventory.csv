@@ -1,0 +1,19 @@
+operation,name,machineType,publicAddress,publicAddressServices,privateAddress,side
+CREATE,sideA,VM_HOST,192.168.1.199,,,sideA
+CREATE,sideB,VM_HOST,192.168.1.199,,,sideB
+CREATE,CUCM-PUB-A,CM_PUBLISHER,10.180.1.211,type=AXL&userName=administrator&password=P@ssword123!,,sideA
+CREATE,CUCM-SUB-A,CM_SUBSCRIBER,10.180.1.201,,,sideA
+CREATE,CUCM-SUB-B,CM_SUBSCRIBER,10.180.2.201,,,sideB
+CREATE,CVP-A,CVP,10.180.1.208,type=CVP_WSM&userName=administrator@JLAB1.LOCAL&password=P@ssword123!,,sideA
+CREATE,FINESSE-A,FINESSE,10.180.1.209,type=DIAGNOSTIC_PORTAL&userName=administrator&password=P@ssword123!,,sideA
+CREATE,CUIC-A,CUIC_PUBLISHER,10.180.1.205,type=DIAGNOSTIC_PORTAL&userName=administrator&password=P@ssword123!; type=IDS&userName=administrator&password=P@ssword123!,,sideA
+CREATE,FINESSE-B,FINESSE,10.180.2.209,,,sideB
+CREATE,CUIC-B,CUIC_SUBSCRIBER,10.180.2.205,,,sideB
+CREATE,CVP-B,CVP,10.180.2.208,type=CVP_WSM&userName=administrator@JLAB1.LOCAL&password=P@ssword123!,,sideB
+CREATE,AW-A,CCE_AW,10.180.1.202,type=DIAGNOSTIC_PORTAL&userName=administrator@JLAB1.LOCAL&password=P@ssword123!,,sideA
+CREATE,AW-B,CCE_AW,10.180.2.202,,,sideB
+CREATE,PG-A,CCE_PG,10.180.1.204,,10.180.1.204,sideA
+CREATE,PG-B,CCE_PG,10.180.2.204,,10.180.2.204,sideB
+CREATE,ROGGER-A,CCE_ROGGER,10.180.1.206,,10.180.1.206,sideA
+CREATE,ROGGER-B,CCE_ROGGER,10.180.2.206,,10.180.2.206,sideB
+

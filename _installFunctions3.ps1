@@ -295,3 +295,59 @@ function Install-VyOSVM ($esxiHost, $vmName, $numCPU=1, $memoryGB=0.5, $diskGB=2
     Send-VMKeystrokesText -vmName $vmName -txt "set service dns forwarding allow-from $ipPrefixSideB.0/24<enter><1>set service dns forwarding listen-address $ipPrefixSideB.1<enter><1>" -description "side B NIC forward DNS";
     Send-VMKeystrokesText -vmName $vmName -txt "commit<enter><2>save<enter><2>exit<enter><2>reboot now<enter><2>" -description "save and reboot";
 }
+
+function Run-DomainManager ($vmName, $adminPassword, $facilityName, $instanceName) {
+    Write-Host "Running domain manager on $vmName, setting facility to $facilityName and instance to $instanceName";
+    Send-VMKeystrokesText -vmName $vmName -txt "<#r><1>C:\icm\bin\DomainManager.exe<enter><5>" -description "start domain manager";
+    Send-VMKeystrokesText -vmName $vmName -txt "<RIGHT><2><%a><2><ENTER><5><%a><2>$facilityName<2><ENTER><5><%a><2>$instanceName<2><ENTER><5><%c><2>" -description "add domain root, facility, and instance, close it";
+
+    Write-Host "Creating AD 'ServiceAccount', and add it to all AD security groups..."
+    Invoke-VMScript -VM $vmName -GuestUser "administrator" -GuestPassword $adminPassword -ScriptType PowerShell -ScriptText "
+        New-ADUser -Name 'ServiceAccount' -ChangePasswordAtLogon:`$false -PasswordNeverExpires:`$true -Enabled:`$true -AccountPassword (ConvertTo-SecureString -AsPlainText '$adminPassword' -Force);
+        `$groups = @('Domain Admins', 'Cisco_ICM_Config', 'Cisco_ICM_Setup', '$($facilityName)_Config', '$($facilityName)_Setup', '$($facilityName)_$($instanceName)_Config', '$($facilityName)_$($instanceName)_Setup', '$($facilityName)_$($instanceName)_Service');
+        foreach (`$group in `$groups) {
+            Add-ADGroupMember -Identity `$group -Members 'ServiceAccount'; Write-Host `"Added to group `$group`"; }
+    ";
+}
+
+# exports and imports self-signed certs from various components to CCE and CVP
+# relies on script A:\functions.ps1
+function Import-Certs ($vmName, $adminPassword, $vms, $domain) {
+    Write-Host "Exporting and importing certs on $vmName";
+
+    $imports = ". A:\functions.ps1`n";
+    $exports = ". A:\functions.ps1`n";
+    #$i = 0;
+    foreach ($vm in $vms) {
+        $url = "$($vm.name).$($domain)"; # e.g. CVP-A.JLAB1.LOCAL
+        $ports = switch -Wildcard ($vm.type) { "*CVP*" { @('9443', '8111') } "*CM*" { @('443', '8443') } "*FINESSE*" { @('443') } "*VVB*" { @('443') } "*CCE*" { @('443', '7890') } "*CUIC*" { @('443', '8553') } }
+        foreach ($port in $ports) {
+            $site = "$($url):$port";
+            $alias = $site.Replace(":", "_");
+            $fileName = "$alias.cer"; # e.g. CVP-A.JLAB1.LOCAL.cer
+            $imports += "Export-CertFile '$($url):$($port)' 'c:\temp\$fileName';`n"
+            $exports += "Import-CertFile $alias' 'c:\temp\$fileName';`n"
+        }
+    }
+    # note: scripttext seems to have a max length, so split into two commands
+    Invoke-VMScript -VM $vmName -GuestUser "administrator" -GuestPassword $adminPassword -ScriptType PowerShell -ScriptText $imports;
+    Invoke-VMScript -VM $vmName -GuestUser "administrator" -GuestPassword $adminPassword -ScriptType PowerShell -ScriptText $exports;
+}
+
+function Create-InventoryCSV ($esxiHost, $vms, $password, $domain, $outputFile) {
+    Write-Host "Creating $outputFile";
+    $out = "operation,name,machineType,publicAddress,publicAddressServices,privateAddress,side`r`n";
+    $out += "CREATE,sideA,VM_HOST,$esxiHost,,,sideA`r`nCREATE,sideB,VM_HOST,$esxiHost,,,sideB`r`n";
+    foreach ($vm in $vms.Where({$PSItem.type -like "CCE*" -or $PSItem.type -like "CM*" -or $PSItem.type -like "CVP" -or $PSItem.type -like "FINESSE" -or $PSItem.type -like "CUIC*"})) {
+        $out += "CREATE,$($vm.name),$($vm.type),$($vm.ip),";
+        if ($vm.type -eq "CVP") { $out += "type=CVP_WSM&userName=administrator@$domain&password=$password"; }
+        elseif ($vm.type -eq "CM_PUBLISHER") { $out += "type=AXL&userName=administrator&password=$password"; }
+        elseif ($vm.type -eq "CCE_AW" -and $vm.side -eq "A") { $out += "type=DIAGNOSTIC_PORTAL&userName=administrator@$domain&password=$password"; }
+        elseif ($vm.type -eq "CUIC_PUBLISHER") { $out += "type=DIAGNOSTIC_PORTAL&userName=administrator&password=$password; type=IDS&userName=administrator&password=$password"; }
+        elseif ($vm.type -eq "FINESSE" -and $vm.side -eq "A") { $out += "type=DIAGNOSTIC_PORTAL&userName=administrator&password=$password"; }
+        $out += ",";
+        if ($vm.type -like "*ROGGER" -or $vm.type -like "*PG") { $out += $vm.ip; }
+        $out += ",side$($vm.side)`r`n";
+    }
+    $out | Out-File -FilePath $outputFile -Encoding ascii;
+}

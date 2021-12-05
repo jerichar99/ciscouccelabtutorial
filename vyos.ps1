@@ -1,9 +1,9 @@
 ﻿$ErrorActionPreference = "Stop"
 cd (Split-Path $MyInvocation.MyCommand.Path) # change directory to this script location
-. .\_installFunctions.ps1
+. .\_installFunctions2.ps1
 
 #Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false > $null;
-#Connect-VIServer -Server 192.168.1.199 -User root -Password P@ssword123! > $null;
+Connect-VIServer -Server 192.168.1.199 -User root -Password P@ssword123! > $null;
 
 New-VM -Name "ROUTER.JLAB1.LOCAL" -vmhost "192.168.1.199" -NumCpu 1 -MemoryGB 0.5 -DiskGB 2 -DiskStorageFormat Thin -GuestID otherGuest64 -NetworkName @("Public Network","Private-SideA","Private-SideB");
 Get-VM "ROUTER.JLAB1.LOCAL" | Set-VM -GuestId "other5xLinux64Guest" -Confirm:$false; # change to correct guest after VM creation (New-VM sets as EFI boot otherwise)

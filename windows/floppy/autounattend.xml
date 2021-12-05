@@ -159,8 +159,8 @@
       </UserAccounts>
       <RegisteredOrganization>Organization</RegisteredOrganization>
       <RegisteredOwner>Administrator</RegisteredOwner>
-      <DisableAutoDaylightTimeSet>true</DisableAutoDaylightTimeSet>
-      <TimeZone>US Mountain Standard Time</TimeZone>
+      <DisableAutoDaylightTimeSet>false</DisableAutoDaylightTimeSet>
+      <TimeZone>US Pacific Standard Time</TimeZone>
     </component>
   </settings>
 

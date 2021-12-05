@@ -1,0 +1,1 @@
+.\bfi.exe "-f=.\windowsFloppy.flp" ".\floppy"
