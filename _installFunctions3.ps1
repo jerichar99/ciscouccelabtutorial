@@ -296,14 +296,14 @@ function Install-VyOSVM ($esxiHost, $vmName, $numCPU=1, $memoryGB=0.5, $diskGB=2
     Send-VMKeystrokesText -vmName $vmName -txt "commit<enter><2>save<enter><2>exit<enter><2>reboot now<enter><2>" -description "save and reboot";
 }
 
-function Run-DomainManager ($vmName, $adminPassword, $facilityName, $instanceName) {
+function Run-DomainManager ($vmName, $adminPassword, $facilityName, $instanceName, $domain) {
     Write-Host "Running domain manager on $vmName, setting facility to $facilityName and instance to $instanceName";
     Send-VMKeystrokesText -vmName $vmName -txt "<#r><1>C:\icm\bin\DomainManager.exe<enter><5>" -description "start domain manager";
     Send-VMKeystrokesText -vmName $vmName -txt "<RIGHT><2><%a><2><ENTER><5><%a><2>$facilityName<2><ENTER><5><%a><2>$instanceName<2><ENTER><5><%c><2>" -description "add domain root, facility, and instance, close it";
 
     Write-Host "Creating AD 'ServiceAccount', and add it to all AD security groups..."
     Invoke-VMScript -VM $vmName -GuestUser "administrator" -GuestPassword $adminPassword -ScriptType PowerShell -ScriptText "
-        New-ADUser -Name 'ServiceAccount' -ChangePasswordAtLogon:`$false -PasswordNeverExpires:`$true -Enabled:`$true -AccountPassword (ConvertTo-SecureString -AsPlainText '$adminPassword' -Force);
+        New-ADUser -Name 'ServiceAccount' -ChangePasswordAtLogon:`$false -PasswordNeverExpires:`$true -Enabled:`$true -AccountPassword (ConvertTo-SecureString -AsPlainText '$adminPassword' -Force) -UserPrincipalName 'ServiceAccount@$domain';
         `$groups = @('Domain Admins', 'Cisco_ICM_Config', 'Cisco_ICM_Setup', '$($facilityName)_Config', '$($facilityName)_Setup', '$($facilityName)_$($instanceName)_Config', '$($facilityName)_$($instanceName)_Setup', '$($facilityName)_$($instanceName)_Service');
         foreach (`$group in `$groups) {
             Add-ADGroupMember -Identity `$group -Members 'ServiceAccount'; Write-Host `"Added to group `$group`"; }
@@ -351,3 +351,11 @@ function Create-InventoryCSV ($esxiHost, $vms, $password, $domain, $outputFile) 
     }
     $out | Out-File -FilePath $outputFile -Encoding ascii;
 }
+
+function Start-VMDelayed ($vmName, $delay) {
+    if ((Get-VM $vmName).PowerState -eq "PoweredOff") { Start-VM $vmName; Sleep-Countdown -seconds $delay -msg "Starting $vmName..."; }
+}
+function Shutdown-VMGuestDelayed ($vmName, $delay) {
+    if ((Get-VM $vmName).PowerState -eq "PoweredOn") { Shutdown-VMGuest $vmName -Confirm:$false; Sleep-Countdown -seconds $delay -msg "Stopping $vmName..."; }
+}
+

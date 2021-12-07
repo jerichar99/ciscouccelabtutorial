@@ -99,12 +99,12 @@ $instanceName = "inst1";
 
 # 1) run domain manager on any CCE machine
 $aw_a = $vms.Where({$PSItem.type -eq "CCE_AW" -and $PSItem.side -eq 'A'}); # pick AW side A
-#Run-DomainManager -vmName $aw_a.name -adminPassword $password -facilityName $facilityName -instanceName $instanceName;
+#Run-DomainManager -vmName $aw_a.name -adminPassword $password -facilityName $facilityName -instanceName $instanceName -domain $domain;
 
 # 2) import all certs
 $cvp_cces = $vms.Where({$PSItem.type -like '*CVP*' -or $PSItem.type -like '*CCE*'});
-foreach ($vm in $cvp_cces) {
-    Import-Certs -vmName $vm.name -adminPassword $password -vms $vms -domain $domain; }
+#foreach ($vm in $cvp_cces) {
+#    Import-Certs -vmName $vm.name -adminPassword $password -vms $vms -domain $domain; }
 
 # 3) optional: customize Windows
 $windowsVMs = $vms.Where({$PSItem.type -like '*CVP*' -or $PSItem.type -like '*CCE*' -or $PSItem.type -like '*AD*'});
@@ -112,4 +112,8 @@ $windowsVMs = $vms.Where({$PSItem.type -like '*CVP*' -or $PSItem.type -like '*CC
 #    Send-VMKeystrokesText -vmName $vm.name -txt "<#r><1>powershell -command `"& { . A:\functions.ps1; Customize-Explorer; Install-CommonPrograms; }`"<1><enter><10>" -description "run customizations for $($vm.name)"; }
 
 # 4) create inventory.csv
-Create-InventoryCSV -esxiHost $esxiHost -vms $vms -password $password -domain $domain -outputFile ".\inventory.csv";
+#Create-InventoryCSV -esxiHost $esxiHost -vms $vms -password $password -domain $domain -outputFile ".\inventory.csv";
+
+# start/stop VMs in order with 120 seconds gap
+#foreach ($vm in ($vms | Sort-Object -Descending {(++$script:i)})) { Shutdown-VMGuestDelayed -vmName $vm.name -delay 60; } # reverse order
+#foreach ($vm in $vms) { Start-VMDelayed -vmName $vm.name -delay 120; }

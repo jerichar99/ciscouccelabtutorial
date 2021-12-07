@@ -1,6 +1,6 @@
 ﻿function Sleep-Countdown ($seconds, $msg) {  For ($i=$seconds; $i -gt 0; $i--) { Write-Progress -Activity $msg -SecondsRemaining $i; Start-Sleep 1 } }
 
-# ExportCertFile -site "cvp.jlab3.local:8111" -fileName "cvp_8111.cer", outputs base64 .cer/.pem
+# Export-CertFile -site "cvp-a.jlab1.local:8111" -fileName "cvp-a_8111.cer", outputs base64 .cer/.pem
 function Export-CertFile ([string]$site, [string]$fileName) {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # need on Win2016 server?
     Write-Host "Creating $fileName for $site";
